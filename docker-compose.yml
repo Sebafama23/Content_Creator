@@ -1,0 +1,10 @@
+services:
+  content_creator:
+    build: .
+    container_name: Content_creator
+    env_file:
+      - .env
+    volumes:
+      - .:/app        # Sincroniza tu carpeta local con /app en tiempo real
+    command: python main.py
+    restart: unless-stopped

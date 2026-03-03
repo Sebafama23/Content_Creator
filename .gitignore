@@ -1,0 +1,13 @@
+# Archivos de configuración sensible
+.env
+
+# Datos generados y credenciales
+data/linkedin_token.json
+data/posts/
+data/latest_trends.json
+data/final_post.txt
+
+# Docker y temporales
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

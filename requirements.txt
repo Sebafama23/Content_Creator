@@ -1,0 +1,14 @@
+# Gestión de Datos e IA
+pandas
+google-genai
+
+# APIs y Red
+requests
+google-search-results  # Para SerpApi
+python-dotenv          # Gestión de variables de entorno
+
+# LinkedIn y OAuth2
+requests-oauthlib
+
+# Telegram
+python-telegram-bot

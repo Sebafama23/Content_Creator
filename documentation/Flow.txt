@@ -1,0 +1,11 @@
+researcher.py -	Scraping y búsqueda de tendencias.	
+
+generator.py -	Redacción inicial con Gemma 3 (Ollama).	
+
+editor.py -	Limpieza de texto y Versionado de archivos.	
+
+notifier.py -	Envío del post y archivos al Capitán Morgan (Telegram).	
+
+bot_listener.py - El Corazón del HITL. Escucha tu respuesta, decide si re-generar o publicar.	
+
+publisher.py -	Ejecución final del post en LinkedIn con OAuth2.
