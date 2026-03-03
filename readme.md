@@ -1,7 +1,7 @@
-🚀 AI Content Factory (Human-in-the-Loop)
+# 🚀 AI Content Factory (Human-in-the-Loop)
 Sistema automatizado de creación de contenido técnico para LinkedIn, orquestado con Docker, Gemma 3 (Ollama) y validación humana mediante Telegram.
 
-🛠️ Arquitectura y Flujo
+## 🛠️ Arquitectura y Flujo
 El sistema sigue un flujo agentico diseñado para la eficiencia:
 
 1- Researcher: Scraping de tendencias y noticias técnicas.
@@ -16,7 +16,7 @@ El sistema sigue un flujo agentico diseñado para la eficiencia:
 
 ####################################################################################################
 
-📋 Requisitos Previos
+## 📋 Requisitos Previos
 Docker & Docker Compose instalados.
 
 Ollama corriendo localmente con el modelo gemma3 descargado. Se puede utilizar otro modelo, pero para esto se debe modificar el modelo en el .env. 
@@ -27,22 +27,22 @@ Credenciales:
 
 ####################################################################################################
 
-⚙️ Configuración del Entorno
+## ⚙️ Configuración del Entorno
 Crea un archivo .env en la raíz con el siguiente formato:
-# Ollama
+--> Ollama
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 
-# Telegram
+--> Telegram
 TELEGRAM_TOKEN=tu_token
 TELEGRAM_CHAT_ID=tu_id
 
-# LinkedIn
+--> LinkedIn
 LINKEDIN_CLIENT_ID=tu_id
 LINKEDIN_CLIENT_SECRET=tu_secret
 
 ####################################################################################################
 
-🚀 Guía de Instalación y Uso
+## 🚀 Guía de Instalación y Uso
 1. Despliegue con Docker Compose
 Desde la terminal en la raíz del proyecto, buildea y levanta el servicio:
 docker-compose up --build -d
@@ -59,7 +59,7 @@ Una vez iniciado el script, el Capitán Morgan (Bot) te contactará:
 
 ####################################################################################################
 
-📁 Estructura de Datos
+## 📁 Estructura de Datos
 src/: Lógica modular de los agentes.
 
 data/posts/: Historial de publicaciones generadas con su respectivo versionado.
@@ -68,7 +68,7 @@ data/linkedin_token.json: Persistencia de autenticación OAuth2 (ignorado en Git
 
 ####################################################################################################
 
-🛡️ Seguridad
+## 🛡️ Seguridad
 Este repositorio utiliza un .gitignore estricto para asegurar que:
 
 ❌ No se filtren credenciales (.env).
