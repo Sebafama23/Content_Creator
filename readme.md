@@ -19,7 +19,7 @@ El sistema sigue un flujo agentico diseñado para la eficiencia:
 ## 📋 Requisitos Previos
 Docker & Docker Compose instalados.
 
-Ollama corriendo localmente con el modelo gemma3 descargado. Se puede utilizar otro modelo, pero para esto se debe modificar el modelo en el .env. 
+Ollama corriendo localmente con el modelo gemma3 descargado. Se puede utilizar otro modelo, pero para esto se debe modificar el .env. 
 
 Credenciales:
 - Telegram: TOKEN y CHAT_ID (vía @BotFather).
@@ -44,8 +44,9 @@ LINKEDIN_CLIENT_SECRET=tu_secret
 
 ## 🚀 Guía de Instalación y Uso
 1. Despliegue con Docker Compose
-Desde la terminal en la raíz del proyecto, buildea y levanta el servicio:
-docker-compose up --build -d
+Desde la terminal en la raíz del proyecto, levanta el servicio:
+- Si se modificó algun archivo: docker-compose up --build -d
+- Si no se modificó ningun archivo: docker-compose up -d
 
 2. Ejecución del Orquestador
 Para iniciar un nuevo ciclo de creación de contenido:

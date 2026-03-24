@@ -55,6 +55,27 @@ Escribí solo el post. Nada más. Sin comentarios, sin explicaciones al final.""
         
         return self._call_ollama(master_prompt)
 
+    def generate_from_image_context(self, image_context):
+        print(f"--- Generando contenido a partir de imagen localmente con {self.model} ---")
+        
+        master_prompt = f"""Sos un profesional de MLOps e IA Industrial escribiendo en LinkedIn.
+Analizá esta información extraída de una imagen técnica:
+{image_context}
+
+Escribí un post de LinkedIn en español, directamente, sin títulos, sin etiquetas ni introducciones.
+
+El post debe:
+- Arrancar directo con el hook.
+- Sonar humano y profesional, no como robot.
+- Explicar o debatir el valor del contenido de la imagen.
+- Cierre con llamada a la acción o pregunta.
+- Terminar con exactamente 3 hashtags relevantes.
+- Máximo 1300 caracteres en total.
+
+Escribí solo el post. Nada más."""
+        
+        return self._call_ollama(master_prompt)
+
     def refine_content(self, previous_post, user_feedback, trends):
         """Método separado para refinamiento — contexto más claro para el modelo."""
         print(f"--- Refinando contenido con {self.model} ---")
