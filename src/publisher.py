@@ -84,6 +84,57 @@ class LinkedInPublisher:
         response = session.post('https://api.linkedin.com/v2/ugcPosts', json=post_data)
         return response.status_code, response.text
 
+    def publish_with_image(self, raw_text, image_path):
+        text = self.clean_content(raw_text)
+        session = self.get_session()
+        
+        # 1. Obtener URN
+        user_info = session.get('https://api.linkedin.com/v2/userinfo').json()
+        user_urn = f"urn:li:person:{user_info['sub']}"
+        
+        # 2. Registrar subida de imagen
+        register_url = "https://api.linkedin.com/v2/assets?action=registerUpload"
+        register_payload = {
+            "registerUploadRequest": {
+                "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
+                "owner": user_urn,
+                "serviceRelationships": [{"relationshipType": "OWNER", "identifier": "urn:li:userGeneratedContent"}]
+            }
+        }
+        res = session.post(register_url, json=register_payload)
+        if res.status_code not in [200, 201]:
+            return res.status_code, f"Error registering upload: {res.text}"
+            
+        upload_url = res.json()["value"]["uploadMechanism"]["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]["uploadUrl"]
+        asset_id = res.json()["value"]["asset"]
+        
+        # 3. Subir el binario (usamos headers especiales)
+        with open(image_path, "rb") as image_file:
+            put_res = session.put(
+                upload_url, 
+                data=image_file.read(), 
+                headers={"Content-Type": "application/octet-stream"}
+            )
+            if put_res.status_code not in [200, 201]:
+                return put_res.status_code, f"Error uploading binary: {put_res.text}"
+                
+        # 4. Crear el post con la referencia a la imagen
+        ugc_url = "https://api.linkedin.com/v2/ugcPosts"
+        post_data = {
+            "author": user_urn,
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {"text": text},
+                    "shareMediaCategory": "IMAGE",
+                    "media": [{"status": "READY", "media": asset_id}]
+                }
+            },
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"}
+        }
+        post_res = session.post(ugc_url, json=post_data)
+        return post_res.status_code, post_res.text
+
 if __name__ == "__main__":
     with open("data/final_post.txt", "r", encoding="utf-8") as f:
         content = f.read()

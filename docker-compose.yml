@@ -8,3 +8,22 @@ services:
       - .:/app        # Sincroniza tu carpeta local con /app en tiempo real
     command: python main.py
     restart: unless-stopped
+
+  comfyui:
+    build:
+      context: .
+      dockerfile: Dockerfile.comfyui
+    container_name: ComfyUI_Server
+    ports:
+      - "8188:8188"
+    volumes:
+      - ./data/comfyui/models:/comfyui/models
+      - ./data/comfyui/output:/comfyui/output
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped

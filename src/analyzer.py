@@ -15,12 +15,11 @@ class VisionAnalyzer:
         """
         print(f"--- Analizando imagen con {self.model} ---")
         
-        prompt = """Sos un experto analista de datos trabajando en IA Industrial.
-Analizá esta imagen en profundo detalle.
-Extraé todo el texto visible (OCR) cuidando la precisión.
-Describe el contexto, las tablas, los gráficos o esquemas presentes.
-Tu respuesta servirá de base técnica para redactar un post de LinkedIn, así que proveé el máximo detalle posible sin omitir datos técnicos relevantes.
-No incluyas saludos ni texto sobrante, solo devuelve el análisis técnico."""
+        prompt = """Sos un experto creador de contenido en IA Industrial.
+Analiza detenidamente esta imagen.
+Extrae todo el texto visible (OCR) cuidando la precisión y comprende el contexto estructural (tablas, gráficos, esquemas).
+A partir de todo este análisis, REDACTA UN BORRADOR COMPLETO para un post de LinkedIn explicando de manera profunda y enriquecedora el valor o concepto técnico que se muestra en la imagen.
+Da el máximo detalle técnico posible y escribe directamente tu post borrador. No incluyas saludos, muletillas como 'Aquí tienes' o descripciones periféricas, comienza directamente con el cuerpo del texto."""
 
         try:
             response = requests.post(self.ollama_url, json={

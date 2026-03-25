@@ -16,24 +16,35 @@ class Researcher:
         query = topic if topic else DEFAULT_QUERY
         print(f"Investigando: {query}...")
 
-        search = GoogleSearch({
+        search_params = {
             "q": query,
             "api_key": self.api_key,
-            "num": 5,
-            "tbs": "qdr:w"
-        })
-        results = search.get_dict()
-        organic = results.get("organic_results", [])
+            "engine": "google",
+            "gl": "ar",
+            "hl": "es",
+            "tbm": "nws",
+            "num": 5
+        }
 
-        if not organic:
+        search = GoogleSearch(search_params)
+        results = search.get_dict()
+        
+        news = results.get("news_results", [])
+        
+        if not news:
+            search_params.pop("tbm", None)
+            search_params["tbs"] = "qdr:w"
+            news = GoogleSearch(search_params).get_dict().get("organic_results", [])
+
+        if not news:
             raise ValueError(f"No se encontraron resultados para: {query}")
 
         data = [
             {
                 "title": r.get("title"),
                 "link": r.get("link"),
-                "snippet": r.get("snippet")
-            } for r in organic
+                "snippet": r.get("snippet", r.get("source", ""))
+            } for r in news
         ]
         return pd.DataFrame(data)
 

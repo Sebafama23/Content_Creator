@@ -1,0 +1,7 @@
+{
+  "active_tone": "profesional",
+  "tones": {
+    "profesional": "Tono profesional, pragmático y humano. Sin sonar aburrido, pero apuntando directo al valor técnico.",
+    "relajado": "Tono casual, utiliza analogías sencillas y es muy conversacional."
+  }
+}

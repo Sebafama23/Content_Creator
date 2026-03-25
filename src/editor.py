@@ -28,16 +28,28 @@ class ContentEditor:
         # Eliminar notas finales si las hay
         clean_text = re.split(r'\*\*Explicación|\nExplicación|\nNota:', clean_text)[0]
         
+        # Filtros estrictos anti-IA y formato
+        # Remover prefijos conversacionales de IA
+        clean_text = re.sub(r'^(Aquí tienes|Aquí tiene|Claro|Por supuesto|Este es|Te presento).*?\n', '', clean_text, flags=re.IGNORECASE).strip()
+        # Remover sufijos o preguntas genéricas de IA
+        clean_text = re.sub(r'(Espero que.*?sirva|¡Avísame si.*?|Dime si .*?)\.?$', '', clean_text, flags=re.IGNORECASE).strip()
+        
+        # Eliminar asteriscos de markdown y comillas
+        clean_text = clean_text.replace('**', '').replace('"', '').replace("'", "")
+        # Eliminar bloques de código markdown residuales
+        clean_text = re.sub(r'```[a-zA-Z]*\n?', '', clean_text)
+        clean_text = clean_text.replace('```', '')
+        
         return clean_text.strip()
 
-    def save_versioned_post(self, text):
-        """Guarda el archivo con el formato: publicacion_DD_MM_AAAA_vN.txt"""
+    def save_versioned_post(self, text, flow_id):
+        """Guarda el archivo con el formato: post_DD_MM_AAAA_{flow_id}_vN.txt"""
         today_str = datetime.now().strftime("%d_%m_%Y")
         version = 1
         
-        # Lógica de búsqueda de versión existente
+        # Lógica de búsqueda de versión existente para ese flujo y día
         while True:
-            filename = f"publicacion_{today_str}_v{version}.txt"
+            filename = f"post_{today_str}_{flow_id}_v{version}.txt"
             filepath = os.path.join(self.base_path, filename)
             if not os.path.exists(filepath):
                 break
@@ -54,5 +66,5 @@ if __name__ == "__main__":
     
     editor = ContentEditor()
     clean_post = editor.clean_draft(draft)
-    path, v = editor.save_versioned_post(clean_post)
+    path, v = editor.save_versioned_post(clean_post, "testflow")
     print(f"✅ Versión {v} generada en: {path}")

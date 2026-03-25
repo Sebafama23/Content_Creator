@@ -1,0 +1,17 @@
+FROM nvcr.io/nvidia/pytorch:25.01-py3
+
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /comfyui
+WORKDIR /comfyui
+
+# El contenedor de NVIDIA ya incluye PyTorch sumamente optimizado para Blackwell (RTX 5000).
+RUN pip install -r requirements.txt
+
+RUN mkdir -p /comfyui/models/checkpoints \
+             /comfyui/models/vae \
+             /comfyui/output
+
+EXPOSE 8188
+
+CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188"]

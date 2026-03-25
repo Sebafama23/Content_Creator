@@ -8,6 +8,7 @@ from src.generator import LocalContentGenerator
 from src.editor import ContentEditor
 from src.publisher import LinkedInPublisher
 from src.analyzer import VisionAnalyzer
+from src.image_creator import ComfyUIClient
 
 load_dotenv()
 
@@ -18,12 +19,19 @@ class ContentFactoryOrchestrator:
         self.editor = ContentEditor()
         self.publisher = LinkedInPublisher()
         self.analyzer = VisionAnalyzer()
+        self.image_creator = ComfyUIClient()
         self.token = os.getenv("TELEGRAM_TOKEN")
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID")
         self.current_trends = None
         self.last_version_path = None
         self.app = None
         self.active_flow = None  # Trackea qué flujo está corriendo
+        self.flow_id = None      # ID único de trazabilidad para los archivos de versión
+        
+        # Estado de Imaginería
+        self.current_topic = None
+        self.last_sd_prompt = None
+        self.last_image_path = None
 
     # ─────────────────────────────────────────
     # COMANDOS — Entry points del bot
@@ -41,7 +49,9 @@ class ContentFactoryOrchestrator:
             )
             return
 
+        import datetime
         self.active_flow = "texto"
+        self.flow_id = datetime.datetime.now().strftime("%H%M%S")
         await update.message.reply_text(f"🔍 Investigando tendencias sobre: *{topic}*...", parse_mode="Markdown")
 
         try:
@@ -72,7 +82,9 @@ class ContentFactoryOrchestrator:
         /command1
         Pide al usuario que suba una foto para analizarla.
         """
+        import datetime
         self.active_flow = "analizar"
+        self.flow_id = datetime.datetime.now().strftime("%H%M%S")
         await update.message.reply_text("📸 Por favor, enviá la foto (como imagen normal) que querés analizar.")
 
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -118,6 +130,52 @@ class ContentFactoryOrchestrator:
             await self._notify_error(f"🔴 Error al procesar imagen:\n`{e}`")
             self.active_flow = None
 
+    async def handle_imagen(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        /command3 [tema]
+        Genera una imagen artística con SDXL sobre un tema.
+        """
+        topic = " ".join(context.args) if context.args else None
+        if not topic:
+            await update.message.reply_text(
+                "⚠️ Indicá una idea para tu imagen. Ejemplo:\n/command3 fábrica del futuro iluminada con neon"
+            )
+            return
+
+        import datetime
+        self.active_flow = "imagen"
+        self.flow_id = datetime.datetime.now().strftime("%H%M%S")
+        self.current_topic = topic
+        
+        await update.message.reply_text(f"🔍 Investigando tendencias actuales en la web sobre: *{topic}* para enriquecer tu imagen...", parse_mode="Markdown")
+        try:
+            df = self.researcher.fetch_trends(topic)
+            self.current_trends = df.to_json(orient="records")
+        except Exception as e:
+            self.current_trends = None
+            print(f"⚠️ Sin tendencias disponibles para la imagen: {e}")
+
+        await update.message.reply_text(f"🎨 Redactando el prompt fotográfico profesional combinando tu idea con las tendencias del mercado...")
+
+        try:
+            # 1. Hacer que LLM arme el prompt técnico en inglés fusionando idea + tendencias
+            sd_prompt = self.generator.generate_image_prompt(topic, self.current_trends)
+            self.last_sd_prompt = sd_prompt
+            await update.message.reply_text(f"🪄 Prompt maestro generado:\n`{sd_prompt}`\n\nEncendiendo tu RTX 5060 para renderizar (SDXL)...")
+
+            # 2. Llamar a ComfyUI
+            image_path = await self.image_creator.generate_image(sd_prompt, filename_prefix=f"bot_{self.flow_id}")
+            self.last_image_path = image_path
+            
+            # 3. Enviar resultado a Telegram y pausar en este estado en lugar de vaciarlo
+            message = "✅ ¡Acá tenés tu imagen!\n\n---\n✅ Respondé 'confirmado' si te gusta. Pasaremos automáticamente a redactar el post de LinkedIn sobre ella.\n📝 O escribí qué correcciones le hacemos a la imagen (ej: 'hacelo de noche')."
+            await update.message.reply_photo(photo=open(image_path, "rb"), caption=message, read_timeout=60, write_timeout=60)
+
+        except Exception as e:
+            await self._notify_error(f"🔴 Error generando imagen:\n`{e}`")
+            self.active_flow = None
+            self.flow_id = None
+
     async def handle_cancelar(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         /command4
@@ -128,6 +186,7 @@ class ContentFactoryOrchestrator:
             return
 
         self.active_flow = None
+        self.flow_id = None
         self.current_trends = None
         self.last_version_path = None
         await update.message.reply_text(
@@ -158,7 +217,7 @@ class ContentFactoryOrchestrator:
 
     async def process_new_version(self, draft_text):
         clean_post = self.editor.clean_draft(draft_text)
-        self.last_version_path, v = self.editor.save_versioned_post(clean_post)
+        self.last_version_path, v = self.editor.save_versioned_post(clean_post, self.flow_id)
 
         message = (
             f"📝 PROPUESTA v{v}\n\n"
@@ -183,6 +242,34 @@ class ContentFactoryOrchestrator:
 
         user_feedback = update.message.text
 
+        # BIFURCACIÓN: Iteración de Imagen
+        if self.active_flow == "imagen":
+            if user_feedback.lower() == "confirmado":
+                await update.message.reply_text("✅ Imagen lockeada. ✍️ Redactando automáticamente el post para LinkedIn basado en la imagen y las tendencias...")
+                self.active_flow = "imagen_escribiendo_post" # Subimos el estado
+                try:
+                    # Sobreescribimos la generación para que base en el contexto pero sin depender solo del OCR
+                    draft = self.generator.generate_full_content(self.current_trends) if self.current_trends else self.generator.generate_full_content(f"Tema principal: {self.current_topic}")
+                    await self.process_new_version(draft)
+                except Exception as e:
+                    await self._notify_error(f"🔴 Error al redactar post:\n`{e}`")
+                    self.active_flow = None
+            else:
+                await update.message.reply_text("🔄 Modificando la imagen con tus instrucciones...")
+                try:
+                    new_sd_prompt = self.generator.refine_image_prompt(self.last_sd_prompt, user_feedback)
+                    self.last_sd_prompt = new_sd_prompt
+                    await update.message.reply_text(f"🪄 Nuevo prompt iterado:\n`{new_sd_prompt}`\n\nRenderizando...")
+                    
+                    image_path = await self.image_creator.generate_image(new_sd_prompt, filename_prefix=f"bot_{self.flow_id}")
+                    self.last_image_path = image_path
+                    message = "✅ ¡Nueva versión lista!\n\nRespondé 'confirmado' para aceptarla, o seguí escribiendo correcciones."
+                    await update.message.reply_photo(photo=open(image_path, "rb"), caption=message, read_timeout=60, write_timeout=60)
+                except Exception as e:
+                    await self._notify_error(f"🔴 Error al regenerar imagen:\n`{e}`")
+            return
+
+        # BIFURCACIÓN: Flujos Clásicos / Post de Texto
         if user_feedback.lower() == "confirmado":
             if not self.last_version_path or not os.path.exists(self.last_version_path):
                 await update.message.reply_text("❌ No hay ningún post guardado para publicar.")
@@ -195,16 +282,20 @@ class ContentFactoryOrchestrator:
                 await update.message.reply_text("❌ El post parece inválido. Reiniciá el flujo.")
                 return
 
-            await update.message.reply_text("🚀 Publicando en LinkedIn...")
-            status, msg = self.publisher.publish(final_content)
+            await update.message.reply_text("🚀 Empaquetando y publicando en LinkedIn...")
+            if self.active_flow == "imagen_escribiendo_post" and self.last_image_path:
+                status, msg = self.publisher.publish_with_image(final_content, self.last_image_path)
+            else:
+                status, msg = self.publisher.publish(final_content)
 
             if status in [200, 201]:
-                await update.message.reply_text("✅ ¡Post publicado con éxito!")
+                await update.message.reply_text("✅ ¡Post publicado con éxito en tu red!")
                 print("🏁 Proceso finalizado exitosamente.")
             else:
                 await update.message.reply_text(f"❌ Error al publicar: {status} - {msg}")
 
             self.active_flow = None
+            self.flow_id = None
 
         else:
             await update.message.reply_text("🔄 Ajustando con tus comentarios...")
@@ -232,9 +323,10 @@ class ContentFactoryOrchestrator:
     # ─────────────────────────────────────────
 
     def run(self):
-        self.app = Application.builder().token(self.token).build()
+        self.app = Application.builder().token(self.token).read_timeout(60).write_timeout(60).build()
 
         # Comandos
+        self.app.add_handler(CommandHandler("command3", self.handle_imagen))
         self.app.add_handler(CommandHandler("command2", self.handle_texto))
         self.app.add_handler(CommandHandler("command1", self.handle_analizar))
         self.app.add_handler(CommandHandler("command4", self.handle_cancelar))
