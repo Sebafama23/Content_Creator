@@ -26,7 +26,11 @@ Da el máximo detalle técnico posible y escribe directamente tu post borrador. 
                 "model": self.model,
                 "prompt": prompt,
                 "images": [base64_image],
-                "stream": False
+                "stream": False,
+                "keep_alive": 0,
+                "options": {
+                    "num_ctx": 4096
+                }
             }, timeout=300) # Alta tolerancia porque los modelos de visión tardan
             
             # Si el código es 4xx o 5xx, extraemos el mensaje de la API para saber si falta el modelo.

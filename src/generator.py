@@ -31,11 +31,13 @@ class LocalContentGenerator:
 
     def _call_ollama(self, prompt):
         try:
-            response = requests.post(self.ollama_url, json={
+            payload = {
                 "model": self.model,
                 "prompt": prompt,
-                "stream": False
-            }, timeout=120)  # ✅ 120s — modelos locales pueden ser lentos
+                "stream": False,
+                "keep_alive": 0
+            }
+            response = requests.post(self.ollama_url, json=payload, timeout=120)  # ✅ 120s — modelos locales pueden ser lentos
             response.raise_for_status()
             
             result = response.json().get('response', '').strip()
